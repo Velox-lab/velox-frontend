@@ -3,3 +3,6 @@ dist/
 storybook-static/
 coverage/
 .env
+.env.local
+*.log
+tsconfig.tsbuildinfo
