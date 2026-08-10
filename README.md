@@ -1,4 +1,4 @@
-# velox-ui
+# velox-frontend
 
 > React component library for building streaming and recurring payment interfaces on Stellar.
 
@@ -257,8 +257,8 @@ export function App() {
 ## Local Development
 
 ```bash
-git clone https://github.com/Velox-lab/velox-ui.git
-cd velox-ui
+git clone https://github.com/Velox-lab/velox-frontend.git
+cd velox-frontend
 npm install
 ```
 
@@ -291,7 +291,7 @@ npm run build
 ## Project Structure
 
 ```
-velox-ui/
+velox-frontend/
 ├── src/
 │   ├── components/
 │   │   ├── StreamDashboard/
@@ -324,7 +324,7 @@ velox-ui/
 
 ## Contributing
 
-This repository is part of the **Velox** open-source project on the Stellar ecosystem. Contributions are welcome and rewarded through the Stellar Wave Program.
+This repository is part of the **Velox** open-source project built on the Stellar ecosystem. Contributions are welcome.
 
 **Before you contribute:**
 1. Read the [Contributing Guide](CONTRIBUTING.md)
