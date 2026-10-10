@@ -256,6 +256,8 @@ export function App() {
 
 ## Local Development
 
+Requires Node.js 22.12 or newer (needed by `@stellar/stellar-sdk` 17).
+
 ```bash
 git clone https://github.com/Velox-lab/velox-frontend.git
 cd velox-frontend

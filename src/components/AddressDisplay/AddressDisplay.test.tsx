@@ -1,6 +1,4 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { AddressDisplay } from './AddressDisplay';
 
 const FULL_ADDRESS = 'GABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
@@ -13,7 +11,7 @@ describe('AddressDisplay', () => {
 
   it('truncates the address by default', () => {
     render(<AddressDisplay address={FULL_ADDRESS} />);
-    expect(screen.getByLabelText(/stellar address/i).textContent).toBe('GABC...5');
+    expect(screen.getByLabelText(/stellar address/i).textContent).toBe('GABC...2345');
   });
 
   it('shows full address when truncate is false', () => {

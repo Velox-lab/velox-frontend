@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { WalletState, Network } from '../types';
+import { WalletState } from '../types';
 import { VeloxClient } from '../client/VeloxClient';
 
 const DEFAULT_WALLET_STATE: WalletState = {

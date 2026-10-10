@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface Props {
   /** Amount already streamed (in smallest token unit). */

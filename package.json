@@ -13,7 +13,10 @@
     "build-storybook": "storybook build",
     "test": "jest --runInBand",
     "test:run": "jest --runInBand --forceExit",
-    "lint": "eslint 'src/**/*.{ts,tsx}'"
+    "lint": "eslint src"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   },
   "keywords": ["stellar", "soroban", "payments", "react", "components"],
   "license": "MIT",
@@ -22,8 +25,8 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@stellar/freighter-api": "^2.1.0",
-    "@stellar/stellar-sdk": "^12.0.0"
+    "@stellar/freighter-api": "^6.0.1",
+    "@stellar/stellar-sdk": "^17.2.1"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.1.11",
@@ -35,8 +38,8 @@
     "@types/jest": "^29.5.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.13.0",
-    "@typescript-eslint/parser": "^7.13.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^9.5.0",
     "eslint-plugin-react": "^7.34.3",
