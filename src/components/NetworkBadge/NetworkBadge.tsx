@@ -1,4 +1,3 @@
-import React from 'react';
 import { Network } from '../../types';
 
 interface Props {
