@@ -1,5 +1,7 @@
 # velox-frontend
 
+[![CI](https://github.com/Velox-lab/velox-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/Velox-lab/velox-frontend/actions/workflows/ci.yml)
+
 > React component library for building streaming and recurring payment interfaces on Stellar.
 
 ---
