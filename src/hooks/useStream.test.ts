@@ -1,0 +1,173 @@
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useStream } from './useStream';
+import { VeloxClient } from '../client/VeloxClient';
+import { Stream } from '../types';
+
+const STREAM_ID = 'C_STREAM';
+const SENDER = 'G_SENDER';
+
+function makeClient(): jest.Mocked<
+  Pick<VeloxClient, 'getStream' | 'withdrawFromStream' | 'cancelStream'>
+> {
+  return {
+    getStream: jest.fn(),
+    withdrawFromStream: jest.fn(),
+    cancelStream: jest.fn(),
+  };
+}
+
+function makeStream(overrides: Partial<Stream> = {}): Stream {
+  return {
+    streamId: STREAM_ID,
+    sender: SENDER,
+    recipient: 'G_RECIPIENT',
+    token: 'C_TOKEN',
+    ratePerSecond: 10n,
+    startTime: 1000,
+    endTime: 2000,
+    totalFunded: 10_000n,
+    totalWithdrawn: 0n,
+    status: 'active',
+    ...overrides,
+  };
+}
+
+// useStream's second argument is documented as senderPublicKey, but it is also passed to
+// withdrawFromStream, where only the recipient can actually withdraw — a known bug, see
+// https://github.com/Velox-lab/velox-frontend/issues/7. These tests document the hook's
+// current behavior (it forwards whatever key it is given) rather than fixing that issue,
+// which is left open for a contributor.
+describe('useStream', () => {
+  it('starts loading and fetches on mount', async () => {
+    const client = makeClient();
+    client.getStream.mockResolvedValue(makeStream());
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(client.getStream).toHaveBeenCalledWith(STREAM_ID);
+    expect(result.current.stream).toEqual(makeStream());
+    expect(result.current.error).toBeNull();
+  });
+
+  it('sets an error and null stream when the fetch fails', async () => {
+    const client = makeClient();
+    client.getStream.mockRejectedValue(new Error('network down'));
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBe('network down');
+    expect(result.current.stream).toBeNull();
+  });
+
+  it('withdraw() calls withdrawFromStream then refetches', async () => {
+    const client = makeClient();
+    client.getStream
+      .mockResolvedValueOnce(makeStream({ totalWithdrawn: 0n }))
+      .mockResolvedValueOnce(makeStream({ totalWithdrawn: 500n }));
+    client.withdrawFromStream.mockResolvedValue('tx_hash');
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.withdraw();
+    });
+
+    expect(client.withdrawFromStream).toHaveBeenCalledWith(STREAM_ID, SENDER);
+    expect(client.getStream).toHaveBeenCalledTimes(2);
+    expect(result.current.stream?.totalWithdrawn).toBe(500n);
+    expect(result.current.isWithdrawing).toBe(false);
+  });
+
+  it('withdraw() sets an error and does not refetch on failure', async () => {
+    const client = makeClient();
+    client.getStream.mockResolvedValue(makeStream());
+    client.withdrawFromStream.mockRejectedValue(new Error('nothing to withdraw'));
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.withdraw();
+    });
+
+    expect(result.current.error).toBe('nothing to withdraw');
+    expect(client.getStream).toHaveBeenCalledTimes(1);
+    expect(result.current.isWithdrawing).toBe(false);
+  });
+
+  it('cancel() calls cancelStream then refetches', async () => {
+    const client = makeClient();
+    client.getStream
+      .mockResolvedValueOnce(makeStream({ status: 'active' }))
+      .mockResolvedValueOnce(makeStream({ status: 'cancelled' }));
+    client.cancelStream.mockResolvedValue('tx_hash');
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    expect(client.cancelStream).toHaveBeenCalledWith(STREAM_ID, SENDER);
+    expect(result.current.stream?.status).toBe('cancelled');
+    expect(result.current.isCancelling).toBe(false);
+  });
+
+  it('cancel() sets an error on failure', async () => {
+    const client = makeClient();
+    client.getStream.mockResolvedValue(makeStream());
+    client.cancelStream.mockRejectedValue(new Error('not the sender'));
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    expect(result.current.error).toBe('not the sender');
+  });
+
+  it('refresh() re-fetches the stream', async () => {
+    const client = makeClient();
+    client.getStream.mockResolvedValue(makeStream());
+    const { result } = renderHook(() =>
+      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(client.getStream).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-fetches when streamId changes', async () => {
+    const client = makeClient();
+    client.getStream.mockResolvedValue(makeStream());
+    const { rerender } = renderHook(
+      ({ id }) => useStream(id, SENDER, client as unknown as VeloxClient),
+      { initialProps: { id: STREAM_ID } }
+    );
+    await waitFor(() => expect(client.getStream).toHaveBeenCalledTimes(1));
+
+    rerender({ id: 'C_OTHER_STREAM' });
+
+    await waitFor(() => expect(client.getStream).toHaveBeenCalledTimes(2));
+    expect(client.getStream).toHaveBeenLastCalledWith('C_OTHER_STREAM');
+  });
+});
