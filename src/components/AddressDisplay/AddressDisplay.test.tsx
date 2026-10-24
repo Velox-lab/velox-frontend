@@ -14,6 +14,12 @@ describe('AddressDisplay', () => {
     expect(screen.getByLabelText(/stellar address/i).textContent).toBe('GABC...2345');
   });
 
+  it('truncates a real 56-character Stellar address the same way', () => {
+    const realAddress = 'GCKFBEIYTKP73W3PZPF4ZZSZPJXHWY2APQ7UPQ5DBJCSHCN7CFD2FJVK';
+    render(<AddressDisplay address={realAddress} />);
+    expect(screen.getByLabelText(/stellar address/i).textContent).toBe('GCKF...FJVK');
+  });
+
   it('shows full address when truncate is false', () => {
     render(<AddressDisplay address={FULL_ADDRESS} truncate={false} />);
     expect(screen.getByLabelText(/stellar address/i).textContent).toBe(FULL_ADDRESS);

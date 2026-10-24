@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { truncateStellarAddress } from '../../utils/formatters';
 
 interface Props {
   address: string;
@@ -17,7 +18,7 @@ const STELLAR_EXPERT_BASE = 'https://stellar.expert/explorer/public/account';
 export function AddressDisplay({ address, truncate = true, linkToExplorer = false }: Props) {
   const [copied, setCopied] = useState(false);
 
-  const displayAddress = truncate ? truncateAddress(address) : address;
+  const displayAddress = truncate ? truncateStellarAddress(address) : address;
 
   /** Copy the full address to clipboard and show brief confirmation. */
   const copyToClipboard = async () => {
@@ -56,10 +57,4 @@ export function AddressDisplay({ address, truncate = true, linkToExplorer = fals
       </button>
     </span>
   );
-}
-
-/** Truncate a Stellar public key to GABC...WXYZ format. */
-function truncateAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
