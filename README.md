@@ -227,32 +227,34 @@ npm install react react-dom @stellar/stellar-sdk @stellar/freighter-api
 ### Basic Usage
 
 ```tsx
-import {
-  WalletConnectButton,
-  StreamDashboard,
-  CreateStreamForm
-} from '@velox-lab/velox-ui'
+import { VeloxClient, WalletConnectButton, useWallet, useStream } from '@velox-lab/velox-ui'
+
+const client = new VeloxClient(
+  'C...', // VeloxRegistry contract ID
+  'https://soroban-testnet.stellar.org',
+  'testnet'
+)
 
 export function App() {
+  const { wallet, isConnecting, connect, disconnect } = useWallet(client)
+  const { stream, isLoading } = useStream('C...', wallet.publicKey ?? '', client)
+
   return (
     <div>
       <WalletConnectButton
-        onConnect={(publicKey) => console.log('Connected:', publicKey)}
-        onDisconnect={() => console.log('Disconnected')}
+        isConnected={wallet.isConnected}
+        publicKey={wallet.publicKey}
+        isConnecting={isConnecting}
+        onConnect={connect}
+        onDisconnect={disconnect}
       />
-      <StreamDashboard
-        walletAddress="G..."
-        filter="incoming"
-      />
-      <CreateStreamForm
-        defaultToken="USDC"
-        onSuccess={(streamId) => console.log('Stream created:', streamId)}
-        onError={(error) => console.error(error)}
-      />
+      {isLoading ? 'Loading...' : stream && <pre>{JSON.stringify(stream, null, 2)}</pre>}
     </div>
   )
 }
 ```
+
+`StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. `VeloxClient`'s writes (`createStream`, `withdrawFromStream`, `cancelStream`, `createRecurringPayment`, `cancelSchedule`) are not implemented yet either; `connectWallet` and the reads (used above) are.
 
 ---
 
@@ -344,17 +346,20 @@ This repository is part of the **Velox** open-source project built on the Stella
 ## Roadmap
 
 - [x] Project scaffold and architecture design
-- [ ] `WalletConnectButton` component
-- [ ] `useWallet` hook
-- [ ] `VeloxClient` — contract interaction layer
+- [x] `WalletConnectButton` component
+- [x] `useWallet` hook
+- [ ] `VeloxClient` — contract interaction layer. Wallet connection and all reads
+      (getStream, getClaimableBalance, getSchedule, getStreamsByAddress) are done;
+      the writes (createStream, withdrawFromStream, cancelStream,
+      createRecurringPayment, cancelSchedule) still throw "Not implemented"
 - [ ] `CreateStreamForm` component
 - [ ] `StreamCard` component
 - [ ] `StreamDashboard` component
-- [ ] `StreamProgressBar` component (animated)
+- [x] `StreamProgressBar` component (animated)
 - [ ] `RecurringPaymentList` component
 - [ ] `TransactionStatus` component
 - [ ] Storybook setup and stories for all components
-- [ ] Full test coverage (target: 95%+)
+- [ ] Full test coverage (target: 95%+) — ~86% as of this commit
 - [ ] npm package publish
 
 ---

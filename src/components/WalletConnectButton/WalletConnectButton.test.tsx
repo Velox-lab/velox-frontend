@@ -67,4 +67,15 @@ describe('WalletConnectButton', () => {
     );
     expect(screen.getByLabelText(/connected wallet address/i).textContent).toBe('GABC...WXYZ');
   });
+
+  it('truncates a real 56-character Stellar address the same way', () => {
+    render(
+      <WalletConnectButton
+        {...BASE_PROPS}
+        isConnected={true}
+        publicKey="GCKFBEIYTKP73W3PZPF4ZZSZPJXHWY2APQ7UPQ5DBJCSHCN7CFD2FJVK"
+      />
+    );
+    expect(screen.getByLabelText(/connected wallet address/i).textContent).toBe('GCKF...FJVK');
+  });
 });
