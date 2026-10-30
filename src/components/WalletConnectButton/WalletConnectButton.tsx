@@ -1,4 +1,6 @@
 
+import { truncateStellarAddress } from '../../utils/formatters';
+
 interface Props {
   isConnected: boolean;
   publicKey: string | null;
@@ -24,7 +26,7 @@ export function WalletConnectButton({
     return (
       <div className="velox-wallet-connected">
         <span aria-label="Connected wallet address">
-          {truncateAddress(publicKey)}
+          {truncateStellarAddress(publicKey)}
         </span>
         <button
           onClick={onDisconnect}
@@ -48,10 +50,4 @@ export function WalletConnectButton({
       {isConnecting ? 'Connecting...' : 'Connect Wallet'}
     </button>
   );
-}
-
-/** Truncate a Stellar public key to G...XXXX format. */
-function truncateAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }

@@ -15,8 +15,9 @@ module.exports = [
     ...react.configs.flat['jsx-runtime'],
   },
   {
-    // VeloxClient methods are stubs until issues #2-#5 are implemented.
-    // Remove this override once every method uses its parameters.
+    // The write methods (createStream, withdrawFromStream, cancelStream,
+    // createRecurringPayment, cancelSchedule) are stubs until issue #5 is
+    // implemented. Remove this override once every method uses its parameters.
     files: ['src/client/VeloxClient.ts'],
     rules: { '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }] },
   },
