@@ -7,8 +7,13 @@ import { VeloxClient } from '../client/VeloxClient';
  *
  * Fetches stream data on mount and after any action.
  * Components call withdraw() and cancel() — they never call VeloxClient directly.
+ *
+ * userPublicKey is the connected wallet's key, passed to both withdraw() and
+ * cancel(): only the stream's recipient can actually withdraw and only its
+ * sender can actually cancel, and the contract itself enforces that, so the
+ * hook does not need to know in advance which one the connected wallet is.
  */
-export function useStream(streamId: string, senderPublicKey: string, client: VeloxClient) {
+export function useStream(streamId: string, userPublicKey: string, client: VeloxClient) {
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -36,14 +41,14 @@ export function useStream(streamId: string, senderPublicKey: string, client: Vel
     setError(null);
 
     try {
-      await client.withdrawFromStream(streamId, senderPublicKey);
+      await client.withdrawFromStream(streamId, userPublicKey);
       await fetchStream();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Withdraw failed');
     } finally {
       setIsWithdrawing(false);
     }
-  }, [streamId, senderPublicKey, client, fetchStream]);
+  }, [streamId, userPublicKey, client, fetchStream]);
 
   /** Cancel the stream and reclaim unstreamed funds. */
   const cancel = useCallback(async () => {
@@ -51,14 +56,14 @@ export function useStream(streamId: string, senderPublicKey: string, client: Vel
     setError(null);
 
     try {
-      await client.cancelStream(streamId, senderPublicKey);
+      await client.cancelStream(streamId, userPublicKey);
       await fetchStream();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Cancel failed');
     } finally {
       setIsCancelling(false);
     }
-  }, [streamId, senderPublicKey, client, fetchStream]);
+  }, [streamId, userPublicKey, client, fetchStream]);
 
   useEffect(() => {
     fetchStream();

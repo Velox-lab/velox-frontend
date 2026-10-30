@@ -154,15 +154,23 @@ export class VeloxClient {
     throw new Error('Not implemented');
   }
 
-  /** Call withdraw() on a PaymentStream contract. Returns the transaction hash. */
-  async withdrawFromStream(streamId: string, senderPublicKey: string): Promise<TxHash> {
+  /**
+   * Call withdraw() on a PaymentStream contract. Returns the transaction hash.
+   * signerPublicKey must be the stream's recipient — only they can withdraw;
+   * the contract itself enforces this and rejects any other signer.
+   */
+  async withdrawFromStream(streamId: string, signerPublicKey: string): Promise<TxHash> {
     // TODO: implement PaymentStream.withdraw invocation
     // Contributor issue: "Implement VeloxClient.withdrawFromStream"
     throw new Error('Not implemented');
   }
 
-  /** Call cancel() on a PaymentStream contract. Returns the transaction hash. */
-  async cancelStream(streamId: string, senderPublicKey: string): Promise<TxHash> {
+  /**
+   * Call cancel() on a PaymentStream contract. Returns the transaction hash.
+   * signerPublicKey must be the stream's sender — only they can cancel; the
+   * contract itself enforces this and rejects any other signer.
+   */
+  async cancelStream(streamId: string, signerPublicKey: string): Promise<TxHash> {
     // TODO: implement PaymentStream.cancel invocation
     // Contributor issue: "Implement VeloxClient.cancelStream"
     throw new Error('Not implemented');

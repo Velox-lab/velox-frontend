@@ -5,6 +5,8 @@ import { Stream } from '../types';
 
 const STREAM_ID = 'C_STREAM';
 const SENDER = 'G_SENDER';
+/** The connected wallet's key, passed to useStream as userPublicKey. */
+const CONNECTED_WALLET = 'G_CONNECTED_WALLET';
 
 function makeClient(): jest.Mocked<
   Pick<VeloxClient, 'getStream' | 'withdrawFromStream' | 'cancelStream'>
@@ -32,17 +34,18 @@ function makeStream(overrides: Partial<Stream> = {}): Stream {
   };
 }
 
-// useStream's second argument is documented as senderPublicKey, but it is also passed to
-// withdrawFromStream, where only the recipient can actually withdraw — a known bug, see
-// https://github.com/Velox-lab/velox-frontend/issues/7. These tests document the hook's
-// current behavior (it forwards whatever key it is given) rather than fixing that issue,
-// which is left open for a contributor.
+// useStream passes the connected wallet's key to both withdraw() and cancel(); the
+// contract rejects whichever one that wallet is not authorized to call, so the hook
+// does not need to know in advance whether the connected wallet is the stream's
+// sender or its recipient. CONNECTED_WALLET below deliberately does not equal the
+// stream's sender or recipient, to make sure the hook really does forward whatever
+// key it is given rather than silently assuming one role or the other.
 describe('useStream', () => {
   it('starts loading and fetches on mount', async () => {
     const client = makeClient();
     client.getStream.mockResolvedValue(makeStream());
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
 
     expect(result.current.isLoading).toBe(true);
@@ -57,7 +60,7 @@ describe('useStream', () => {
     const client = makeClient();
     client.getStream.mockRejectedValue(new Error('network down'));
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -73,7 +76,7 @@ describe('useStream', () => {
       .mockResolvedValueOnce(makeStream({ totalWithdrawn: 500n }));
     client.withdrawFromStream.mockResolvedValue('tx_hash');
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -81,7 +84,7 @@ describe('useStream', () => {
       await result.current.withdraw();
     });
 
-    expect(client.withdrawFromStream).toHaveBeenCalledWith(STREAM_ID, SENDER);
+    expect(client.withdrawFromStream).toHaveBeenCalledWith(STREAM_ID, CONNECTED_WALLET);
     expect(client.getStream).toHaveBeenCalledTimes(2);
     expect(result.current.stream?.totalWithdrawn).toBe(500n);
     expect(result.current.isWithdrawing).toBe(false);
@@ -92,7 +95,7 @@ describe('useStream', () => {
     client.getStream.mockResolvedValue(makeStream());
     client.withdrawFromStream.mockRejectedValue(new Error('nothing to withdraw'));
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -112,7 +115,7 @@ describe('useStream', () => {
       .mockResolvedValueOnce(makeStream({ status: 'cancelled' }));
     client.cancelStream.mockResolvedValue('tx_hash');
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -120,7 +123,7 @@ describe('useStream', () => {
       await result.current.cancel();
     });
 
-    expect(client.cancelStream).toHaveBeenCalledWith(STREAM_ID, SENDER);
+    expect(client.cancelStream).toHaveBeenCalledWith(STREAM_ID, CONNECTED_WALLET);
     expect(result.current.stream?.status).toBe('cancelled');
     expect(result.current.isCancelling).toBe(false);
   });
@@ -130,7 +133,7 @@ describe('useStream', () => {
     client.getStream.mockResolvedValue(makeStream());
     client.cancelStream.mockRejectedValue(new Error('not the sender'));
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -145,7 +148,7 @@ describe('useStream', () => {
     const client = makeClient();
     client.getStream.mockResolvedValue(makeStream());
     const { result } = renderHook(() =>
-      useStream(STREAM_ID, SENDER, client as unknown as VeloxClient)
+      useStream(STREAM_ID, CONNECTED_WALLET, client as unknown as VeloxClient)
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -160,7 +163,7 @@ describe('useStream', () => {
     const client = makeClient();
     client.getStream.mockResolvedValue(makeStream());
     const { rerender } = renderHook(
-      ({ id }) => useStream(id, SENDER, client as unknown as VeloxClient),
+      ({ id }) => useStream(id, CONNECTED_WALLET, client as unknown as VeloxClient),
       { initialProps: { id: STREAM_ID } }
     );
     await waitFor(() => expect(client.getStream).toHaveBeenCalledTimes(1));
