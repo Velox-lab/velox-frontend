@@ -52,16 +52,28 @@ describe('useStreamList', () => {
     expect(result.current.streams).toEqual([]);
   });
 
-  it('does not fetch when address is empty', async () => {
+  it('does not fetch, and is not stuck loading, when address is empty', async () => {
     const client = makeClient();
     const { result } = renderHook(() => useStreamList('', client as unknown as VeloxClient));
 
-    await waitFor(() => expect(client.getStreamsByAddress).not.toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(client.getStreamsByAddress).not.toHaveBeenCalled();
     expect(result.current.streams).toEqual([]);
-    // isLoading starts true and is never set to false for an empty address — a known bug,
-    // see https://github.com/Velox-lab/velox-frontend/issues/6. Documenting the current
-    // behavior here rather than fixing it, since that issue is left open for a contributor.
-    expect(result.current.isLoading).toBe(true);
+  });
+
+  it('clears a previous list and stops loading when the address becomes empty', async () => {
+    const client = makeClient();
+    client.getStreamsByAddress.mockResolvedValue([makeStream('s1')]);
+    const { result, rerender } = renderHook(
+      ({ address }) => useStreamList(address, client as unknown as VeloxClient),
+      { initialProps: { address: 'G_ADDRESS' } }
+    );
+    await waitFor(() => expect(result.current.streams).toHaveLength(1));
+
+    rerender({ address: '' });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.streams).toEqual([]);
   });
 
   it('refresh() re-fetches the list', async () => {

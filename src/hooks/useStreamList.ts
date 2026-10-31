@@ -14,7 +14,11 @@ export function useStreamList(address: string, client: VeloxClient) {
 
   /** Fetch all streams associated with the given address. */
   const fetchStreams = useCallback(async () => {
-    if (!address) return;
+    if (!address) {
+      setStreams([]);
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
