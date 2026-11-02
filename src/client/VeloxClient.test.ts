@@ -250,4 +250,129 @@ describe('VeloxClient', () => {
       expect(await makeClient().getStreamsByAddress(SENDER)).toEqual([]);
     });
   });
+
+  // ── Write methods: withdraw / cancel ────────────────────────────────────
+
+  function mockPrepare() {
+    return jest
+      .spyOn(StellarSdk.rpc.Server.prototype, 'prepareTransaction')
+      .mockImplementation(async (built: StellarSdk.Transaction | StellarSdk.FeeBumpTransaction) => {
+        jest.spyOn(built, 'toXDR').mockReturnValue('prepared-xdr');
+        return built as StellarSdk.Transaction;
+      });
+  }
+
+  function mockSend(status: 'PENDING' | 'DUPLICATE' | 'TRY_AGAIN_LATER' | 'ERROR', hash = 'tx_hash') {
+    return jest.spyOn(StellarSdk.rpc.Server.prototype, 'sendTransaction').mockResolvedValue({
+      status,
+      hash,
+      latestLedger: 1,
+      latestLedgerCloseTime: 1,
+    } as unknown as StellarSdk.rpc.Api.SendTransactionResponse);
+  }
+
+  function mockPoll(status: 'SUCCESS' | 'FAILED', hash = 'tx_hash') {
+    return jest.spyOn(StellarSdk.rpc.Server.prototype, 'pollTransaction').mockResolvedValue({
+      status,
+      txHash: hash,
+    } as unknown as StellarSdk.rpc.Api.GetTransactionResponse);
+  }
+
+  function mockSignSuccess(signerAddress = SENDER) {
+    mockedFreighter.signTransaction.mockResolvedValue({
+      signedTxXdr: 'signed-xdr',
+      signerAddress,
+    });
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(StellarSdk.TransactionBuilder, 'fromXDR')
+      .mockReturnValue({} as unknown as StellarSdk.Transaction);
+  });
+
+  describe.each([
+    ['withdrawFromStream', STREAM_ID] as const,
+    ['cancelStream', STREAM_ID] as const,
+    ['cancelSchedule', SCHEDULE_ID] as const,
+  ])('%s', (methodName, contractId) => {
+    it('builds, signs, submits and returns the tx hash on success', async () => {
+      mockPrepare();
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('SUCCESS');
+
+      const client = makeClient() as unknown as Record<
+        string,
+        (id: string, signer: string) => Promise<string>
+      >;
+      const hash = await client[methodName](contractId, SENDER);
+
+      expect(hash).toBe('tx_hash');
+    });
+
+    it('throws USER_REJECTED when Freighter signing is declined', async () => {
+      mockPrepare();
+      mockedFreighter.signTransaction.mockResolvedValue({
+        signedTxXdr: '',
+        signerAddress: '',
+        error: { code: -4, message: 'User declined access' },
+      });
+
+      const client = makeClient() as unknown as Record<
+        string,
+        (id: string, signer: string) => Promise<string>
+      >;
+
+      await expect(client[methodName](contractId, SENDER)).rejects.toMatchObject({
+        code: 'USER_REJECTED',
+      });
+    });
+
+    it('throws SIMULATION_FAILED when the transaction cannot be prepared', async () => {
+      jest
+        .spyOn(StellarSdk.rpc.Server.prototype, 'prepareTransaction')
+        .mockRejectedValue(new Error('contract not found'));
+
+      const client = makeClient() as unknown as Record<
+        string,
+        (id: string, signer: string) => Promise<string>
+      >;
+
+      await expect(client[methodName](contractId, SENDER)).rejects.toMatchObject({
+        code: 'SIMULATION_FAILED',
+      });
+    });
+
+    it('throws SUBMISSION_FAILED when the network rejects the submission', async () => {
+      mockPrepare();
+      mockSignSuccess();
+      mockSend('ERROR');
+
+      const client = makeClient() as unknown as Record<
+        string,
+        (id: string, signer: string) => Promise<string>
+      >;
+
+      await expect(client[methodName](contractId, SENDER)).rejects.toMatchObject({
+        code: 'SUBMISSION_FAILED',
+      });
+    });
+
+    it('throws TRANSACTION_FAILED when the submitted transaction fails on-chain', async () => {
+      mockPrepare();
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('FAILED');
+
+      const client = makeClient() as unknown as Record<
+        string,
+        (id: string, signer: string) => Promise<string>
+      >;
+
+      await expect(client[methodName](contractId, SENDER)).rejects.toMatchObject({
+        code: 'TRANSACTION_FAILED',
+      });
+    });
+  });
 });

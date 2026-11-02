@@ -160,9 +160,7 @@ export class VeloxClient {
    * the contract itself enforces this and rejects any other signer.
    */
   async withdrawFromStream(streamId: string, signerPublicKey: string): Promise<TxHash> {
-    // TODO: implement PaymentStream.withdraw invocation
-    // Contributor issue: "Implement VeloxClient.withdrawFromStream"
-    throw new Error('Not implemented');
+    return this.invokeContract(streamId, 'withdraw', [], signerPublicKey);
   }
 
   /**
@@ -171,9 +169,7 @@ export class VeloxClient {
    * contract itself enforces this and rejects any other signer.
    */
   async cancelStream(streamId: string, signerPublicKey: string): Promise<TxHash> {
-    // TODO: implement PaymentStream.cancel invocation
-    // Contributor issue: "Implement VeloxClient.cancelStream"
-    throw new Error('Not implemented');
+    return this.invokeContract(streamId, 'cancel', [], signerPublicKey);
   }
 
   /**
@@ -231,12 +227,74 @@ export class VeloxClient {
 
   /** Cancel a recurring payment schedule. Returns the transaction hash. */
   async cancelSchedule(scheduleId: string, senderPublicKey: string): Promise<TxHash> {
-    // TODO: implement RecurringPayment.cancel invocation
-    // Contributor issue: "Implement VeloxClient.cancelSchedule"
-    throw new Error('Not implemented');
+    return this.invokeContract(scheduleId, 'cancel', [], senderPublicKey);
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
+
+  /**
+   * Build, simulate, sign with Freighter, submit and wait for the result of a
+   * contract call that changes state. Returns the transaction hash once the
+   * network confirms it landed — callers that need a return value (e.g. a
+   * factory's newly deployed contract ID) must decode it separately; this
+   * helper is for calls where only success/failure and the hash matter.
+   */
+  private async invokeContract(
+    contractId: string,
+    method: string,
+    args: StellarSdk.xdr.ScVal[],
+    signerPublicKey: string
+  ): Promise<TxHash> {
+    const source = new StellarSdk.Account(signerPublicKey, '0');
+    const tx = new StellarSdk.TransactionBuilder(source, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(new StellarSdk.Contract(contractId).call(method, ...args))
+      .setTimeout(30)
+      .build();
+
+    let prepared: StellarSdk.Transaction;
+    try {
+      prepared = await this.server.prepareTransaction(tx);
+    } catch (err) {
+      throw new VeloxClientError(
+        `failed to prepare ${method} on ${contractId}: ${errorMessage(err)}`,
+        'SIMULATION_FAILED'
+      );
+    }
+
+    const signed = await freighter.signTransaction(prepared.toXDR(), {
+      networkPassphrase: this.networkPassphrase,
+      address: signerPublicKey,
+    });
+    if (signed.error) {
+      throw new VeloxClientError(signed.error.message, 'USER_REJECTED');
+    }
+
+    const signedTx = StellarSdk.TransactionBuilder.fromXDR(
+      signed.signedTxXdr,
+      this.networkPassphrase
+    ) as StellarSdk.Transaction;
+
+    const sendResult = await this.server.sendTransaction(signedTx);
+    if (sendResult.status !== 'PENDING' && sendResult.status !== 'DUPLICATE') {
+      throw new VeloxClientError(
+        `failed to submit ${method} on ${contractId}: ${sendResult.status}`,
+        'SUBMISSION_FAILED'
+      );
+    }
+
+    const finalResult = await this.server.pollTransaction(sendResult.hash);
+    if (finalResult.status !== StellarSdk.rpc.Api.GetTransactionStatus.SUCCESS) {
+      throw new VeloxClientError(
+        `${method} on ${contractId} failed on-chain (tx ${sendResult.hash})`,
+        'TRANSACTION_FAILED'
+      );
+    }
+
+    return sendResult.hash;
+  }
 
   /**
    * Simulate a read-only contract call and decode its return value.
@@ -291,4 +349,8 @@ function parseScheduleStatus(raw: string[] | string): ScheduleStatus {
     return name;
   }
   throw new VeloxClientError(`unknown schedule status: ${name}`, 'UNKNOWN_STATUS');
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
