@@ -62,8 +62,18 @@ interface RawStreamEntry {
  * It returns typed domain objects — no raw SDK types are exposed to upper layers.
  * It throws typed errors — no raw SDK exceptions bubble up to components or hooks.
  */
+/**
+ * How many payments' worth of allowance to approve when creating a recurring
+ * schedule. RecurringPayment pulls `amount` once per interval and never
+ * re-approves itself, so approving only one payment's worth would make the
+ * very next payment fail. 12 is a judgment call, not a contract requirement —
+ * the sender can always approve more later.
+ */
+const SCHEDULE_APPROVAL_PAYMENT_COUNT = 12;
+
 export class VeloxClient {
   private readonly registryContractId: string;
+  private readonly factoryContractId: string;
   private readonly sorobanRpcUrl: string;
   private readonly network: Network;
   private readonly networkPassphrase: string;
@@ -75,8 +85,14 @@ export class VeloxClient {
    */
   private readonly simulationSourcePublicKey: string;
 
-  constructor(registryContractId: string, sorobanRpcUrl: string, network: Network = 'testnet') {
+  constructor(
+    registryContractId: string,
+    factoryContractId: string,
+    sorobanRpcUrl: string,
+    network: Network = 'testnet'
+  ) {
     this.registryContractId = registryContractId;
+    this.factoryContractId = factoryContractId;
     this.sorobanRpcUrl = sorobanRpcUrl;
     this.network = network;
     this.networkPassphrase =
@@ -145,13 +161,22 @@ export class VeloxClient {
   }
 
   /** Deploy a new PaymentStream via StreamFactory and return the stream contract ID. */
-  async createStream(
-    senderPublicKey: string,
-    params: CreateStreamParams
-  ): Promise<string> {
-    // TODO: implement StreamFactory.create_stream invocation
-    // Contributor issue: "Implement VeloxClient.createStream"
-    throw new Error('Not implemented');
+  async createStream(senderPublicKey: string, params: CreateStreamParams): Promise<string> {
+    const args = [
+      new StellarSdk.Address(senderPublicKey).toScVal(),
+      new StellarSdk.Address(params.recipient).toScVal(),
+      new StellarSdk.Address(params.token).toScVal(),
+      StellarSdk.nativeToScVal(params.ratePerSecond, { type: 'i128' }),
+      StellarSdk.nativeToScVal(BigInt(params.startTime), { type: 'u64' }),
+      StellarSdk.nativeToScVal(BigInt(params.endTime), { type: 'u64' }),
+      StellarSdk.nativeToScVal(params.totalFunded, { type: 'i128' }),
+    ];
+    return this.invokeContractForAddress(
+      this.factoryContractId,
+      'create_stream',
+      args,
+      senderPublicKey
+    );
   }
 
   /**
@@ -215,14 +240,32 @@ export class VeloxClient {
     };
   }
 
-  /** Deploy a new RecurringPayment via StreamFactory and return the schedule ID. */
+  /**
+   * Deploy a new RecurringPayment via StreamFactory, approve it to pull
+   * payments from the sender's token balance, and return the schedule ID.
+   */
   async createRecurringPayment(
     senderPublicKey: string,
     params: CreateScheduleParams
   ): Promise<string> {
-    // TODO: implement StreamFactory.create_schedule invocation
-    // Contributor issue: "Implement VeloxClient.createRecurringPayment"
-    throw new Error('Not implemented');
+    const args = [
+      new StellarSdk.Address(senderPublicKey).toScVal(),
+      new StellarSdk.Address(params.recipient).toScVal(),
+      new StellarSdk.Address(params.token).toScVal(),
+      StellarSdk.nativeToScVal(params.amount, { type: 'i128' }),
+      StellarSdk.nativeToScVal(BigInt(params.intervalSeconds), { type: 'u64' }),
+      StellarSdk.nativeToScVal(BigInt(params.firstPaymentTime), { type: 'u64' }),
+    ];
+    const scheduleId = await this.invokeContractForAddress(
+      this.factoryContractId,
+      'create_schedule',
+      args,
+      senderPublicKey
+    );
+
+    await this.approveScheduleAllowance(params.token, senderPublicKey, scheduleId, params.amount);
+
+    return scheduleId;
   }
 
   /** Cancel a recurring payment schedule. Returns the transaction hash. */
@@ -294,6 +337,101 @@ export class VeloxClient {
     }
 
     return sendResult.hash;
+  }
+
+  /**
+   * Like invokeContract, but for a call whose return value matters — namely
+   * StreamFactory.create_stream/create_schedule, which return the newly
+   * deployed contract's address. Simulation predicts that address; nothing
+   * else can submit a conflicting deployment between simulating and signing
+   * in this single-user flow, so the prediction is what actually lands.
+   */
+  private async invokeContractForAddress(
+    contractId: string,
+    method: string,
+    args: StellarSdk.xdr.ScVal[],
+    signerPublicKey: string
+  ): Promise<string> {
+    const source = new StellarSdk.Account(signerPublicKey, '0');
+    const tx = new StellarSdk.TransactionBuilder(source, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(new StellarSdk.Contract(contractId).call(method, ...args))
+      .setTimeout(30)
+      .build();
+
+    const sim = await this.server.simulateTransaction(tx);
+    if (StellarSdk.rpc.Api.isSimulationError(sim)) {
+      throw new VeloxClientError(
+        `failed to simulate ${method} on ${contractId}: ${sim.error}`,
+        'SIMULATION_FAILED'
+      );
+    }
+    const retval = sim.result?.retval;
+    if (!retval) {
+      throw new VeloxClientError(
+        `${method} on ${contractId} returned no value`,
+        'SIMULATION_FAILED'
+      );
+    }
+    const deployedAddress = StellarSdk.scValToNative(retval) as string;
+
+    const prepared = StellarSdk.rpc.assembleTransaction(tx, sim).build();
+
+    const signed = await freighter.signTransaction(prepared.toXDR(), {
+      networkPassphrase: this.networkPassphrase,
+      address: signerPublicKey,
+    });
+    if (signed.error) {
+      throw new VeloxClientError(signed.error.message, 'USER_REJECTED');
+    }
+
+    const signedTx = StellarSdk.TransactionBuilder.fromXDR(
+      signed.signedTxXdr,
+      this.networkPassphrase
+    ) as StellarSdk.Transaction;
+
+    const sendResult = await this.server.sendTransaction(signedTx);
+    if (sendResult.status !== 'PENDING' && sendResult.status !== 'DUPLICATE') {
+      throw new VeloxClientError(
+        `failed to submit ${method} on ${contractId}: ${sendResult.status}`,
+        'SUBMISSION_FAILED'
+      );
+    }
+
+    const finalResult = await this.server.pollTransaction(sendResult.hash);
+    if (finalResult.status !== StellarSdk.rpc.Api.GetTransactionStatus.SUCCESS) {
+      throw new VeloxClientError(
+        `${method} on ${contractId} failed on-chain (tx ${sendResult.hash})`,
+        'TRANSACTION_FAILED'
+      );
+    }
+
+    return deployedAddress;
+  }
+
+  /**
+   * Approve a newly created RecurringPayment schedule to pull up to
+   * SCHEDULE_APPROVAL_PAYMENT_COUNT payments from the sender's token balance.
+   */
+  private async approveScheduleAllowance(
+    token: string,
+    senderPublicKey: string,
+    scheduleId: string,
+    amountPerPayment: bigint
+  ): Promise<void> {
+    const latestLedger = await this.server.getLatestLedger();
+    const expirationLedger = latestLedger.sequence + 100_000;
+    const approvedAmount = amountPerPayment * BigInt(SCHEDULE_APPROVAL_PAYMENT_COUNT);
+
+    const args = [
+      new StellarSdk.Address(senderPublicKey).toScVal(),
+      new StellarSdk.Address(scheduleId).toScVal(),
+      StellarSdk.nativeToScVal(approvedAmount, { type: 'i128' }),
+      StellarSdk.nativeToScVal(expirationLedger, { type: 'u32' }),
+    ];
+    await this.invokeContract(token, 'approve', args, senderPublicKey);
   }
 
   /**
