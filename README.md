@@ -231,6 +231,7 @@ import { VeloxClient, WalletConnectButton, useWallet, useStream } from '@velox-l
 
 const client = new VeloxClient(
   'C...', // VeloxRegistry contract ID
+  'C...', // StreamFactory contract ID
   'https://soroban-testnet.stellar.org',
   'testnet'
 )
@@ -254,7 +255,7 @@ export function App() {
 }
 ```
 
-`StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. `VeloxClient`'s simple writes (`withdrawFromStream`, `cancelStream`, `cancelSchedule`) are implemented, along with `connectWallet` and the reads (used above); `createStream` and `createRecurringPayment` — which deploy a new contract via `StreamFactory` and must decode its returned contract ID — are not implemented yet.
+`StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. All of `VeloxClient`'s writes are now implemented: `withdrawFromStream`, `cancelStream`, `cancelSchedule`, and `createStream`/`createRecurringPayment`, which deploy a new contract via `StreamFactory` and return its address (predicted from simulation before signing, since nothing else can submit a conflicting deployment in this single-user flow). `createRecurringPayment` also approves the new schedule on the token for 12 payments' worth — a judgment call, not a contract requirement, since `RecurringPayment` never re-approves itself.
 
 ---
 
@@ -348,13 +349,10 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [x] Project scaffold and architecture design
 - [x] `WalletConnectButton` component
 - [x] `useWallet` hook
-- [ ] `VeloxClient` — contract interaction layer. Wallet connection, all reads
-      (getStream, getClaimableBalance, getSchedule, getStreamsByAddress) and the
-      simple writes (withdrawFromStream, cancelStream, cancelSchedule) are done;
-      createStream and createRecurringPayment still throw "Not implemented" —
-      both deploy a new contract via StreamFactory and need the returned
-      contract ID decoded, and createRecurringPayment also needs the sender's
-      token approval step
+- [x] `VeloxClient` — contract interaction layer. Wallet connection, all reads
+      (getStream, getClaimableBalance, getSchedule, getStreamsByAddress), and
+      all writes (withdrawFromStream, cancelStream, cancelSchedule,
+      createStream, createRecurringPayment) are done
 - [ ] `CreateStreamForm` component
 - [ ] `StreamCard` component
 - [ ] `StreamDashboard` component

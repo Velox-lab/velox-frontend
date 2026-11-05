@@ -6,6 +6,7 @@ jest.mock('@stellar/freighter-api');
 const mockedFreighter = jest.mocked(freighter);
 
 const REGISTRY_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 1));
+const FACTORY_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 9));
 const STREAM_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 2));
 const SCHEDULE_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 3));
 const TOKEN_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 4));
@@ -42,7 +43,7 @@ function mockSimulation(...responses: StellarSdk.rpc.Api.SimulateTransactionResp
 }
 
 function makeClient() {
-  return new VeloxClient(REGISTRY_ID, 'https://soroban-testnet.stellar.org', 'testnet');
+  return new VeloxClient(REGISTRY_ID, FACTORY_ID, 'https://soroban-testnet.stellar.org', 'testnet');
 }
 
 describe('VeloxClient', () => {
@@ -372,6 +373,145 @@ describe('VeloxClient', () => {
 
       await expect(client[methodName](contractId, SENDER)).rejects.toMatchObject({
         code: 'TRANSACTION_FAILED',
+      });
+    });
+  });
+
+  // ── Write methods: createStream / createRecurringPayment ────────────────
+
+  function mockAssemble() {
+    return jest.spyOn(StellarSdk.rpc, 'assembleTransaction').mockImplementation(() => {
+      const built = { toXDR: () => 'assembled-xdr' } as unknown as StellarSdk.Transaction;
+      return { build: () => built } as unknown as StellarSdk.TransactionBuilder;
+    });
+  }
+
+  function mockLatestLedger(sequence = 1000) {
+    return jest.spyOn(StellarSdk.rpc.Server.prototype, 'getLatestLedger').mockResolvedValue({
+      id: 'abc',
+      sequence,
+      protocolVersion: '21',
+    } as unknown as StellarSdk.rpc.Api.GetLatestLedgerResponse);
+  }
+
+  describe('createStream', () => {
+    const params = {
+      recipient: RECIPIENT,
+      token: TOKEN_ID,
+      ratePerSecond: 10n,
+      startTime: 1000,
+      endTime: 1100,
+      totalFunded: 1000n,
+    };
+    const NEW_STREAM_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 20));
+
+    it('deploys the stream and returns its contract address', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_STREAM_ID).toScVal()));
+      mockAssemble();
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('SUCCESS');
+
+      const streamId = await makeClient().createStream(SENDER, params);
+
+      expect(streamId).toBe(NEW_STREAM_ID);
+    });
+
+    it('throws SIMULATION_FAILED when simulation fails', async () => {
+      mockSimulation(simulateError('factory not found'));
+
+      await expect(makeClient().createStream(SENDER, params)).rejects.toMatchObject({
+        code: 'SIMULATION_FAILED',
+      });
+    });
+
+    it('throws USER_REJECTED when Freighter signing is declined', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_STREAM_ID).toScVal()));
+      mockAssemble();
+      mockedFreighter.signTransaction.mockResolvedValue({
+        signedTxXdr: '',
+        signerAddress: '',
+        error: { code: -4, message: 'User declined access' },
+      });
+
+      await expect(makeClient().createStream(SENDER, params)).rejects.toMatchObject({
+        code: 'USER_REJECTED',
+      });
+    });
+
+    it('throws SUBMISSION_FAILED when the network rejects the submission', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_STREAM_ID).toScVal()));
+      mockAssemble();
+      mockSignSuccess();
+      mockSend('ERROR');
+
+      await expect(makeClient().createStream(SENDER, params)).rejects.toMatchObject({
+        code: 'SUBMISSION_FAILED',
+      });
+    });
+
+    it('throws TRANSACTION_FAILED when the submitted transaction fails on-chain', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_STREAM_ID).toScVal()));
+      mockAssemble();
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('FAILED');
+
+      await expect(makeClient().createStream(SENDER, params)).rejects.toMatchObject({
+        code: 'TRANSACTION_FAILED',
+      });
+    });
+  });
+
+  describe('createRecurringPayment', () => {
+    const params = {
+      recipient: RECIPIENT,
+      token: TOKEN_ID,
+      amount: 100n,
+      intervalSeconds: 604_800,
+      firstPaymentTime: 1_604_800,
+    };
+    const NEW_SCHEDULE_ID = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 21));
+
+    it('deploys the schedule, approves it on the token, and returns its address', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_SCHEDULE_ID).toScVal()));
+      mockAssemble();
+      mockLatestLedger(1000);
+      const prepare = mockPrepare();
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('SUCCESS');
+
+      const scheduleId = await makeClient().createRecurringPayment(SENDER, params);
+
+      expect(scheduleId).toBe(NEW_SCHEDULE_ID);
+      // The schedule deploy goes through invokeContractForAddress (simulate +
+      // assemble, asserted via the mocks above); the approval afterward goes
+      // through invokeContract, which calls prepareTransaction exactly once.
+      expect(prepare).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws SIMULATION_FAILED when the factory call cannot be simulated', async () => {
+      mockSimulation(simulateError('factory not found'));
+
+      await expect(makeClient().createRecurringPayment(SENDER, params)).rejects.toMatchObject({
+        code: 'SIMULATION_FAILED',
+      });
+    });
+
+    it('propagates a failure from the approval step after the schedule was created', async () => {
+      mockSimulation(simulateSuccess(addr(NEW_SCHEDULE_ID).toScVal()));
+      mockAssemble();
+      mockLatestLedger(1000);
+      jest
+        .spyOn(StellarSdk.rpc.Server.prototype, 'prepareTransaction')
+        .mockRejectedValue(new Error('allowance contract call rejected'));
+      mockSignSuccess();
+      mockSend('PENDING');
+      mockPoll('SUCCESS');
+
+      await expect(makeClient().createRecurringPayment(SENDER, params)).rejects.toMatchObject({
+        code: 'SIMULATION_FAILED',
       });
     });
   });

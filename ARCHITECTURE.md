@@ -145,6 +145,8 @@ class VeloxClient {
 }
 ```
 
+`createStream` and `createRecurringPayment` go through `StreamFactory`, which deploys a new contract and returns its address — the one return value `VeloxClient`'s write path needs to decode rather than just report success/failure. It's decoded from simulation, before signing: nothing else can submit a conflicting deployment between simulating and submitting in this single-user flow, so the predicted address is the one that lands. `createRecurringPayment` additionally approves the new schedule on the token afterward, since `RecurringPayment.execute_payment` pulls via `transfer_from` and never re-approves itself — the approved amount covers a fixed number of future payments (a judgment call, tunable, not a contract requirement), not just the first one.
+
 ---
 
 ## Component Tree
