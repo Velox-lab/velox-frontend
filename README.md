@@ -254,7 +254,7 @@ export function App() {
 }
 ```
 
-`StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. `VeloxClient`'s writes (`createStream`, `withdrawFromStream`, `cancelStream`, `createRecurringPayment`, `cancelSchedule`) are not implemented yet either; `connectWallet` and the reads (used above) are.
+`StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. `VeloxClient`'s simple writes (`withdrawFromStream`, `cancelStream`, `cancelSchedule`) are implemented, along with `connectWallet` and the reads (used above); `createStream` and `createRecurringPayment` — which deploy a new contract via `StreamFactory` and must decode its returned contract ID — are not implemented yet.
 
 ---
 
@@ -348,10 +348,13 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [x] Project scaffold and architecture design
 - [x] `WalletConnectButton` component
 - [x] `useWallet` hook
-- [ ] `VeloxClient` — contract interaction layer. Wallet connection and all reads
-      (getStream, getClaimableBalance, getSchedule, getStreamsByAddress) are done;
-      the writes (createStream, withdrawFromStream, cancelStream,
-      createRecurringPayment, cancelSchedule) still throw "Not implemented"
+- [ ] `VeloxClient` — contract interaction layer. Wallet connection, all reads
+      (getStream, getClaimableBalance, getSchedule, getStreamsByAddress) and the
+      simple writes (withdrawFromStream, cancelStream, cancelSchedule) are done;
+      createStream and createRecurringPayment still throw "Not implemented" —
+      both deploy a new contract via StreamFactory and need the returned
+      contract ID decoded, and createRecurringPayment also needs the sender's
+      token approval step
 - [ ] `CreateStreamForm` component
 - [ ] `StreamCard` component
 - [ ] `StreamDashboard` component
