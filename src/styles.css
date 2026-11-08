@@ -1,0 +1,210 @@
+/**
+ * Velox UI component styles.
+ *
+ * Not imported automatically — import this file yourself:
+ *   import '@velox-lab/velox-ui/style.css'
+ *
+ * Re-theme by overriding the --velox-* custom properties. Dark mode follows
+ * prefers-color-scheme by default; set data-theme="dark" or "light" on an
+ * ancestor element to force a theme regardless of the OS setting.
+ */
+
+:root {
+  --velox-color-bg: #ffffff;
+  --velox-color-bg-subtle: #f3f4f6;
+  --velox-color-text: #111827;
+  --velox-color-text-muted: #6b7280;
+  --velox-color-border: #d1d5db;
+  --velox-color-primary: #4f46e5;
+  --velox-color-primary-text: #ffffff;
+  --velox-color-secondary-bg: #e5e7eb;
+  --velox-color-secondary-text: #111827;
+  --velox-color-success: #16a34a;
+  --velox-color-warning: #ca8a04;
+  --velox-color-link: #4f46e5;
+  --velox-radius: 6px;
+  --velox-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --velox-color-bg: #111827;
+    --velox-color-bg-subtle: #1f2937;
+    --velox-color-text: #f9fafb;
+    --velox-color-text-muted: #9ca3af;
+    --velox-color-border: #374151;
+    --velox-color-primary: #818cf8;
+    --velox-color-primary-text: #111827;
+    --velox-color-secondary-bg: #374151;
+    --velox-color-secondary-text: #f9fafb;
+    --velox-color-success: #4ade80;
+    --velox-color-warning: #facc15;
+    --velox-color-link: #818cf8;
+  }
+}
+
+:root[data-theme='dark'] {
+  --velox-color-bg: #111827;
+  --velox-color-bg-subtle: #1f2937;
+  --velox-color-text: #f9fafb;
+  --velox-color-text-muted: #9ca3af;
+  --velox-color-border: #374151;
+  --velox-color-primary: #818cf8;
+  --velox-color-primary-text: #111827;
+  --velox-color-secondary-bg: #374151;
+  --velox-color-secondary-text: #f9fafb;
+  --velox-color-success: #4ade80;
+  --velox-color-warning: #facc15;
+  --velox-color-link: #818cf8;
+}
+
+/* ── AddressDisplay ───────────────────────────────────────────────────────── */
+
+.velox-address {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--velox-font);
+  color: var(--velox-color-text);
+}
+
+.velox-address__link {
+  color: var(--velox-color-link);
+  text-decoration: none;
+}
+
+.velox-address__link:hover {
+  text-decoration: underline;
+}
+
+.velox-address__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--velox-color-text-muted);
+  cursor: pointer;
+  padding: 0.125rem;
+  border-radius: var(--velox-radius);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.velox-address__copy:hover {
+  background: var(--velox-color-bg-subtle);
+  color: var(--velox-color-text);
+}
+
+/* ── NetworkBadge ─────────────────────────────────────────────────────────── */
+
+.velox-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-family: var(--velox-font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--velox-color-bg-subtle);
+  color: var(--velox-color-text);
+}
+
+.velox-badge__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.velox-badge--mainnet {
+  color: var(--velox-color-success);
+}
+
+.velox-badge--testnet {
+  color: var(--velox-color-warning);
+}
+
+/* ── StreamProgressBar ────────────────────────────────────────────────────── */
+
+.velox-progress {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+  background: var(--velox-color-bg-subtle);
+  border: 1px solid var(--velox-color-border);
+  border-radius: var(--velox-radius);
+  overflow: hidden;
+}
+
+.velox-progress__fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: var(--velox-color-primary);
+}
+
+.velox-progress__fill--animated {
+  transition: width 0.3s ease-out;
+}
+
+.velox-progress__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-family: var(--velox-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  /* White-plus-shadow reads over both the subtle track and the colored fill,
+     without needing a mix-blend-mode that some older browsers get wrong. */
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* ── TokenAmountDisplay ───────────────────────────────────────────────────── */
+
+.velox-token-amount {
+  font-family: var(--velox-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--velox-color-text);
+}
+
+/* ── WalletConnectButton ──────────────────────────────────────────────────── */
+
+.velox-wallet-connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--velox-font);
+  color: var(--velox-color-text);
+}
+
+.velox-btn {
+  font-family: var(--velox-font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--velox-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.velox-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.velox-btn--primary {
+  background: var(--velox-color-primary);
+  color: var(--velox-color-primary-text);
+}
+
+.velox-btn--secondary {
+  background: var(--velox-color-secondary-bg);
+  color: var(--velox-color-secondary-text);
+  border-color: var(--velox-color-border);
+}

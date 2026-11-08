@@ -202,7 +202,7 @@ Write a failing test → Write minimum code to pass → Refactor → Repeat
 | TypeScript | Type safety |
 | `@stellar/stellar-sdk` | Stellar network interaction |
 | `@stellar/freighter-api` | Wallet integration |
-| Tailwind CSS | Styling |
+| Plain CSS (`dist/style.css`), CSS variables for theming | Styling |
 | React Testing Library | Component testing |
 | Jest | Test runner |
 | Storybook | Component development and documentation |
@@ -225,6 +225,12 @@ npm install react react-dom @stellar/stellar-sdk @stellar/freighter-api
 ```
 
 ### Basic Usage
+
+Import the stylesheet once, anywhere in your app (it's not injected automatically):
+
+```ts
+import '@velox-lab/velox-ui/style.css'
+```
 
 ```tsx
 import { VeloxClient, WalletConnectButton, useWallet, useStream } from '@velox-lab/velox-ui'
@@ -256,6 +262,26 @@ export function App() {
 ```
 
 `StreamDashboard` and `CreateStreamForm`, shown in earlier versions of this example, are not built yet — see the Roadmap below. All of `VeloxClient`'s writes are now implemented: `withdrawFromStream`, `cancelStream`, `cancelSchedule`, and `createStream`/`createRecurringPayment`, which deploy a new contract via `StreamFactory` and return its address (predicted from simulation before signing, since nothing else can submit a conflicting deployment in this single-user flow). `createRecurringPayment` also approves the new schedule on the token for 12 payments' worth — a judgment call, not a contract requirement, since `RecurringPayment` never re-approves itself.
+
+---
+
+## Styling
+
+Every component renders with `velox-*` class names and ships fully styled out of the box once you import the stylesheet (see Basic Usage above) — no Tailwind setup required in your app, even though Tailwind is listed as a dev dependency here (it's not used by any shipped component or style; removing it is tracked separately, not done in this change).
+
+Colors are CSS custom properties on `:root` (`--velox-color-bg`, `--velox-color-primary`, etc. — see `src/styles.css` for the full list), so you can override any of them in your own CSS without touching the library:
+
+```css
+:root {
+  --velox-color-primary: #ff6b35;
+}
+```
+
+Dark mode follows `prefers-color-scheme` automatically. To force a theme regardless of the OS setting, set `data-theme` on an ancestor element (e.g. `<html data-theme="dark">`):
+
+```html
+<html data-theme="dark">
+```
 
 ---
 
@@ -319,6 +345,7 @@ velox-frontend/
 │   │   └── VeloxClient.ts
 │   ├── types/
 │   │   └── index.ts
+│   ├── styles.css
 │   └── index.ts
 ├── .storybook/
 ├── package.json
@@ -359,6 +386,9 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [x] `StreamProgressBar` component (animated)
 - [ ] `RecurringPaymentList` component
 - [ ] `TransactionStatus` component
+- [x] Component styles — shipped CSS file (`dist/style.css`), CSS-variable
+      theming, automatic dark mode via `prefers-color-scheme` with a
+      `data-theme` override
 - [ ] Storybook setup and stories for all components
 - [ ] Full test coverage (target: 95%+) — ~86% as of this commit
 - [ ] npm package publish
