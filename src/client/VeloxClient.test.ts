@@ -137,6 +137,25 @@ describe('VeloxClient', () => {
       });
     });
 
+    it('decodes a paused stream', async () => {
+      const retval = StellarSdk.nativeToScVal({
+        sender: addr(SENDER),
+        recipient: addr(RECIPIENT),
+        token: addr(TOKEN_ID),
+        rate_per_second: i128(10n),
+        start_time: u64(1000),
+        end_time: u64(1100),
+        total_funded: i128(1000n),
+        total_withdrawn: i128(250n),
+        status: statusVal('Paused'),
+      });
+      mockSimulation(simulateSuccess(retval));
+
+      const stream = await makeClient().getStream(STREAM_ID);
+
+      expect(stream.status).toBe('paused');
+    });
+
     it('throws a VeloxClientError when simulation fails', async () => {
       mockSimulation(simulateError('contract not found'));
 

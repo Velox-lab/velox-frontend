@@ -1,6 +1,6 @@
 // ── Core domain types for velox-frontend ─────────────────────────────────────
 
-export type StreamStatus = 'active' | 'cancelled' | 'completed';
+export type StreamStatus = 'active' | 'cancelled' | 'completed' | 'paused';
 export type ScheduleStatus = 'active' | 'cancelled' | 'completed';
 export type Network = 'mainnet' | 'testnet';
 

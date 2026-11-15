@@ -50,13 +50,11 @@ Displays all active, completed, and cancelled streams for the connected wallet. 
 ---
 
 #### `<StreamCard />`
-A single stream summary card. Shows rate, total amount, elapsed time, and current status with a live progress bar.
+A single stream summary card. Shows sender, recipient, funded vs. withdrawn amounts, rate, and current status with a progress bar. Pure render, same rule as every other component here — it takes the `Stream` object as a prop rather than fetching it itself (that's `useStream`'s job) and has no withdraw/cancel buttons built in (compose `WalletConnectButton`-style action buttons separately if you need them, driven by the same hook that gave you the stream).
 
 **Props:**
-- `streamId` — the on-chain stream ID
-- `showActions` — boolean, show withdraw/cancel buttons
-- `onWithdraw(streamId)` — callback for withdraw action
-- `onCancel(streamId)` — callback for cancel action
+- `stream` — the `Stream` object to render
+- `assetCode` — optional display code for the stream's token (e.g. `'USDC'`); falls back to a truncated contract address if omitted, since resolving it would need a network call this component doesn't make
 
 ---
 
@@ -381,7 +379,7 @@ This repository is part of the **Velox** open-source project built on the Stella
       all writes (withdrawFromStream, cancelStream, cancelSchedule,
       createStream, createRecurringPayment) are done
 - [ ] `CreateStreamForm` component
-- [ ] `StreamCard` component
+- [x] `StreamCard` component
 - [ ] `StreamDashboard` component
 - [x] `StreamProgressBar` component (animated)
 - [ ] `RecurringPaymentList` component
