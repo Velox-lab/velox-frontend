@@ -389,7 +389,8 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [x] Component styles — shipped CSS file (`dist/style.css`), CSS-variable
       theming, automatic dark mode via `prefers-color-scheme` with a
       `data-theme` override
-- [ ] Storybook setup and stories for all components
+- [x] Storybook setup and stories for all components (the 5 that exist today;
+      new components should add their own story alongside their implementation)
 - [ ] Full test coverage (target: 95%+) — ~86% as of this commit
 - [ ] npm package publish
 
