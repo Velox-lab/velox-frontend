@@ -475,7 +475,7 @@ export class VeloxClient {
 /** Contract status enums decode as a single-element array, e.g. ['Active']. */
 function parseStreamStatus(raw: string[] | string): StreamStatus {
   const name = (Array.isArray(raw) ? raw[0] : raw).toLowerCase();
-  if (name === 'active' || name === 'cancelled' || name === 'completed') {
+  if (name === 'active' || name === 'cancelled' || name === 'completed' || name === 'paused') {
     return name;
   }
   throw new VeloxClientError(`unknown stream status: ${name}`, 'UNKNOWN_STATUS');

@@ -4,6 +4,7 @@ export { StreamProgressBar } from './components/StreamProgressBar/StreamProgress
 export { AddressDisplay } from './components/AddressDisplay/AddressDisplay';
 export { NetworkBadge } from './components/NetworkBadge/NetworkBadge';
 export { TokenAmountDisplay } from './components/TokenAmountDisplay/TokenAmountDisplay';
+export { StreamCard } from './components/StreamCard/StreamCard';
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 export { useWallet } from './hooks/useWallet';

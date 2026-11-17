@@ -208,3 +208,81 @@
   color: var(--velox-color-secondary-text);
   border-color: var(--velox-color-border);
 }
+
+/* ── StreamCard ───────────────────────────────────────────────────────────── */
+
+.velox-stream-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--velox-color-bg);
+  border: 1px solid var(--velox-color-border);
+  border-radius: var(--velox-radius);
+  font-family: var(--velox-font);
+  color: var(--velox-color-text);
+}
+
+.velox-stream-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.velox-stream-card__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--velox-color-bg-subtle);
+}
+
+.velox-stream-card__status--active {
+  color: var(--velox-color-success);
+}
+
+.velox-stream-card__status--paused {
+  color: var(--velox-color-warning);
+}
+
+.velox-stream-card__status--cancelled,
+.velox-stream-card__status--completed {
+  color: var(--velox-color-text-muted);
+}
+
+.velox-stream-card__rate {
+  font-size: 0.75rem;
+  color: var(--velox-color-text-muted);
+}
+
+.velox-stream-card__parties {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+}
+
+.velox-stream-card__party {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.velox-stream-card__party dt {
+  font-size: 0.75rem;
+  color: var(--velox-color-text-muted);
+}
+
+.velox-stream-card__party dd {
+  margin: 0;
+}
+
+.velox-stream-card__amounts {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--velox-color-text-muted);
+}
