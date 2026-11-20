@@ -120,12 +120,12 @@ Displays the current Stellar network (Mainnet / Testnet) with a color-coded badg
 ---
 
 #### `<TransactionStatus />`
-Shows real-time transaction submission status — pending, submitted, confirmed, or failed — with a link to Stellar Expert.
+Shows a transaction's status — pending, submitted, confirmed, or failed — with a link to Stellar Expert once a hash exists. Pure render, same rule as every other component here — it takes the status as a prop rather than polling the network itself (tracking a transaction live until it confirms or fails is a hook's job, not built yet).
 
 **Props:**
-- `txHash`
-- `onConfirmed(txHash)`
-- `onFailed(error)`
+- `status` — `'pending' | 'submitted' | 'confirmed' | 'failed'`
+- `txHash` — optional; the link only renders once a hash exists
+- `network` — `'mainnet' | 'testnet'`, which Stellar Expert network to link into (defaults to `'mainnet'`)
 
 ---
 
@@ -383,7 +383,7 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [ ] `StreamDashboard` component
 - [x] `StreamProgressBar` component (animated)
 - [ ] `RecurringPaymentList` component
-- [ ] `TransactionStatus` component
+- [x] `TransactionStatus` component
 - [x] Component styles — shipped CSS file (`dist/style.css`), CSS-variable
       theming, automatic dark mode via `prefers-color-scheme` with a
       `data-theme` override
