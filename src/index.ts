@@ -5,6 +5,8 @@ export { AddressDisplay } from './components/AddressDisplay/AddressDisplay';
 export { NetworkBadge } from './components/NetworkBadge/NetworkBadge';
 export { TokenAmountDisplay } from './components/TokenAmountDisplay/TokenAmountDisplay';
 export { StreamCard } from './components/StreamCard/StreamCard';
+export { TransactionStatus } from './components/TransactionStatus/TransactionStatus';
+export type { TxState } from './components/TransactionStatus/TransactionStatus';
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 export { useWallet } from './hooks/useWallet';

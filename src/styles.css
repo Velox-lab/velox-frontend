@@ -21,6 +21,7 @@
   --velox-color-secondary-text: #111827;
   --velox-color-success: #16a34a;
   --velox-color-warning: #ca8a04;
+  --velox-color-danger: #dc2626;
   --velox-color-link: #4f46e5;
   --velox-radius: 6px;
   --velox-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -39,6 +40,7 @@
     --velox-color-secondary-text: #f9fafb;
     --velox-color-success: #4ade80;
     --velox-color-warning: #facc15;
+    --velox-color-danger: #f87171;
     --velox-color-link: #818cf8;
   }
 }
@@ -55,6 +57,7 @@
   --velox-color-secondary-text: #f9fafb;
   --velox-color-success: #4ade80;
   --velox-color-warning: #facc15;
+  --velox-color-danger: #f87171;
   --velox-color-link: #818cf8;
 }
 
@@ -285,4 +288,47 @@
   gap: 0.5rem;
   font-size: 0.75rem;
   color: var(--velox-color-text-muted);
+}
+
+/* ── TransactionStatus ────────────────────────────────────────────────────── */
+
+.velox-tx-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--velox-font);
+  font-size: 0.875rem;
+}
+
+.velox-tx-status__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--velox-color-bg-subtle);
+}
+
+.velox-tx-status__badge--pending,
+.velox-tx-status__badge--submitted {
+  color: var(--velox-color-warning);
+}
+
+.velox-tx-status__badge--confirmed {
+  color: var(--velox-color-success);
+}
+
+.velox-tx-status__badge--failed {
+  color: var(--velox-color-danger);
+}
+
+.velox-tx-status__link {
+  color: var(--velox-color-link);
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.velox-tx-status__link:hover {
+  text-decoration: underline;
 }
