@@ -332,3 +332,81 @@
 .velox-tx-status__link:hover {
   text-decoration: underline;
 }
+
+/* ── RecurringPaymentList ─────────────────────────────────────────────────── */
+
+.velox-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--velox-font);
+  color: var(--velox-color-text);
+}
+
+.velox-schedule-list--loading,
+.velox-schedule-list--empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--velox-color-text-muted);
+  font-size: 0.875rem;
+}
+
+.velox-schedule-list__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--velox-color-bg);
+  border: 1px solid var(--velox-color-border);
+  border-radius: var(--velox-radius);
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.velox-schedule-list__row--selectable {
+  cursor: pointer;
+}
+
+.velox-schedule-list__row--selectable:hover {
+  background: var(--velox-color-bg-subtle);
+}
+
+.velox-schedule-list__status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--velox-color-bg-subtle);
+}
+
+.velox-schedule-list__status--active {
+  color: var(--velox-color-success);
+}
+
+.velox-schedule-list__status--cancelled,
+.velox-schedule-list__status--completed {
+  color: var(--velox-color-text-muted);
+}
+
+.velox-schedule-list__recipient {
+  flex: 1;
+  min-width: 0;
+}
+
+.velox-schedule-list__amount {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.velox-schedule-list__next-payment {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--velox-color-text-muted);
+  white-space: nowrap;
+}

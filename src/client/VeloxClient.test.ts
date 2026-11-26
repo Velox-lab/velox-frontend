@@ -271,6 +271,82 @@ describe('VeloxClient', () => {
     });
   });
 
+  describe('getSchedulesByAddress', () => {
+    const SCHEDULE_A = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 12));
+    const SCHEDULE_B = StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 13));
+    const OTHER = StellarSdk.Keypair.random().publicKey();
+
+    function allSchedulesEntries(
+      ...entries: { scheduleId: string; sender: string; recipient: string }[]
+    ) {
+      return StellarSdk.nativeToScVal(
+        entries.map(({ scheduleId, sender, recipient }) =>
+          StellarSdk.nativeToScVal({
+            schedule_id: addr(scheduleId),
+            sender: addr(sender),
+            recipient: addr(recipient),
+            registered_at: u64(1000),
+          })
+        )
+      );
+    }
+
+    /** The same canned RecurringPayment.get_schedule_info response for any schedule ID. */
+    function scheduleInfo() {
+      return simulateSuccess(
+        StellarSdk.nativeToScVal({
+          sender: addr(SENDER),
+          recipient: addr(RECIPIENT),
+          token: addr(TOKEN_ID),
+          amount: i128(100n),
+          interval: u64(604_800),
+          next_payment_time: u64(1_604_800),
+          status: statusVal('Active'),
+        })
+      );
+    }
+
+    it('filters get_all_schedules by sender or recipient, then fetches each match', async () => {
+      mockSimulation(
+        simulateSuccess(
+          allSchedulesEntries(
+            { scheduleId: SCHEDULE_A, sender: SENDER, recipient: OTHER },
+            { scheduleId: SCHEDULE_B, sender: OTHER, recipient: SENDER },
+            { scheduleId: StellarSdk.StrKey.encodeContract(Buffer.alloc(32, 14)), sender: OTHER, recipient: OTHER }
+          )
+        ),
+        scheduleInfo(),
+        scheduleInfo()
+      );
+
+      const schedules = await makeClient().getSchedulesByAddress(SENDER);
+
+      expect(schedules.map((s) => s.scheduleId).sort()).toEqual([SCHEDULE_A, SCHEDULE_B].sort());
+    });
+
+    it('leaves out a schedule that fails to load instead of failing the whole list', async () => {
+      mockSimulation(
+        simulateSuccess(
+          allSchedulesEntries(
+            { scheduleId: SCHEDULE_A, sender: SENDER, recipient: OTHER },
+            { scheduleId: SCHEDULE_B, sender: SENDER, recipient: OTHER }
+          )
+        ),
+        simulateError('stale entry'),
+        scheduleInfo()
+      );
+
+      const schedules = await makeClient().getSchedulesByAddress(SENDER);
+
+      expect(schedules.map((s) => s.scheduleId)).toEqual([SCHEDULE_B]);
+    });
+
+    it('returns an empty list when the address has no schedules', async () => {
+      mockSimulation(simulateSuccess(allSchedulesEntries()));
+      expect(await makeClient().getSchedulesByAddress(SENDER)).toEqual([]);
+    });
+  });
+
   // ── Write methods: withdraw / cancel ────────────────────────────────────
 
   function mockPrepare() {
