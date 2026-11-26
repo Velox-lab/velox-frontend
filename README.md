@@ -91,11 +91,13 @@ A form for setting up fixed-interval recurring payments. Validates intervals, am
 ---
 
 #### `<RecurringPaymentList />`
-Lists all recurring payment schedules for the connected wallet, with next payment time and status.
+Lists recurring payment schedules with recipient, amount per interval, next payment time, and status. Pure render, same rule as every other component here — it takes the schedules it shows as a prop rather than fetching them by wallet address itself (that's `useScheduleList`'s job, paired with `VeloxClient.getSchedulesByAddress`).
 
 **Props:**
-- `walletAddress`
-- `onScheduleSelect(scheduleId)`
+- `schedules` — `Schedule[]`
+- `isLoading` — optional; shows a loading row instead of the list
+- `onScheduleSelect(scheduleId)` — optional; rows render as buttons when provided
+- `assetCode` — optional display code applied to every row; falls back to a truncated token address per schedule
 
 ---
 
@@ -382,7 +384,7 @@ This repository is part of the **Velox** open-source project built on the Stella
 - [x] `StreamCard` component
 - [ ] `StreamDashboard` component
 - [x] `StreamProgressBar` component (animated)
-- [ ] `RecurringPaymentList` component
+- [x] `RecurringPaymentList` component
 - [x] `TransactionStatus` component
 - [x] Component styles — shipped CSS file (`dist/style.css`), CSS-variable
       theming, automatic dark mode via `prefers-color-scheme` with a

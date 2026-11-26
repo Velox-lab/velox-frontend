@@ -7,11 +7,13 @@ export { TokenAmountDisplay } from './components/TokenAmountDisplay/TokenAmountD
 export { StreamCard } from './components/StreamCard/StreamCard';
 export { TransactionStatus } from './components/TransactionStatus/TransactionStatus';
 export type { TxState } from './components/TransactionStatus/TransactionStatus';
+export { RecurringPaymentList } from './components/RecurringPaymentList/RecurringPaymentList';
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 export { useWallet } from './hooks/useWallet';
 export { useStream } from './hooks/useStream';
 export { useStreamList } from './hooks/useStreamList';
+export { useScheduleList } from './hooks/useScheduleList';
 export { useClaimableBalance } from './hooks/useClaimableBalance';
 export { useRecurringPayment } from './hooks/useRecurringPayment';
 

@@ -55,6 +55,14 @@ interface RawStreamEntry {
   registered_at: bigint;
 }
 
+/** VeloxRegistry's ScheduleEntry, decoded. */
+interface RawScheduleEntry {
+  schedule_id: string;
+  sender: string;
+  recipient: string;
+  registered_at: bigint;
+}
+
 /**
  * VeloxClient — all communication with the Stellar network and Velox contracts.
  *
@@ -271,6 +279,33 @@ export class VeloxClient {
   /** Cancel a recurring payment schedule. Returns the transaction hash. */
   async cancelSchedule(scheduleId: string, senderPublicKey: string): Promise<TxHash> {
     return this.invokeContract(scheduleId, 'cancel', [], senderPublicKey);
+  }
+
+  /**
+   * Fetch all recurring payment schedules where the address is the sender or
+   * the recipient. Unlike getStreamsByAddress, VeloxRegistry has no
+   * list_schedules_by_sender/recipient — only get_all_schedules — so this
+   * fetches every registered schedule and filters client-side. Fine for the
+   * registry sizes this app targets today; a server-side filter would be the
+   * same change VeloxRegistry already has for streams, if the list ever grows
+   * large enough to matter.
+   *
+   * A schedule that cannot be read (e.g. a stale or malformed registry entry)
+   * is left out rather than failing the whole list, same as getStreamsByAddress.
+   */
+  async getSchedulesByAddress(address: string): Promise<Schedule[]> {
+    const all = await this.readContract<RawScheduleEntry[]>(
+      this.registryContractId,
+      'get_all_schedules'
+    );
+    const scheduleIds = all
+      .filter((entry) => entry.sender === address || entry.recipient === address)
+      .map((entry) => entry.schedule_id);
+
+    const results = await Promise.allSettled(scheduleIds.map((id) => this.getSchedule(id)));
+    return results
+      .filter((r): r is PromiseFulfilledResult<Schedule> => r.status === 'fulfilled')
+      .map((r) => r.value);
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
